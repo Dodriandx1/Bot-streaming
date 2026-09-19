@@ -224,17 +224,12 @@ async def cb_panel_plan(client: Client, cb: CallbackQuery):
             nombre_plan = PLANES.get(plan_id, {}).get("nombre", plan_id)
 
             # Guardar pago pendiente
-            try:
-                pending_file = "pending_payments.json"
-                pending = {}
-                if os.path.exists(pending_file):
-                    with open(pending_file, "r") as f:
-                        pending = json.load(f)
-                pending[str(uid)] = {
-                    "plan": plan_id, "nombre_plan": nombre_plan,
-                    "metodo": metodo, "precio": info["precio"],
-                    "fecha": now_ec().isoformat(),
-                }
+from core.database import pending_payments as pending_db
+pending_db.add(uid, {
+    "plan": plan_id, "nombre_plan": nombre_plan,
+    "metodo": metodo, "precio": info["precio"],
+    "fecha": now_ec().isoformat(),
+})
                 with open(pending_file, "w") as f:
                     json.dump(pending, f, indent=2)
             except Exception as e:
@@ -332,11 +327,8 @@ async def cb_admin_actions(client: Client, cb: CallbackQuery):
             pass
 
     elif action == "list_pending":
-        pending = {}
-        if os.path.exists("pending_payments.json"):
-            with open("pending_payments.json", "r") as f:
-                try: pending = json.load(f)
-                except Exception: pass
+        from core.database import pending_payments as pending_db
+pending = pending_db.get_all()
         text = "╭─「 📥 PAGOS PENDIENTES 」\n┊\n"
         kb_rows = []
         if not pending:
@@ -429,10 +421,8 @@ async def cb_admin_gestion_pago(client: Client, cb: CallbackQuery):
                 "fecha_renovacion": (now_ec() + timedelta(days=30)).isoformat(),
                 "descargas_mes": 0,
             })
-            if uid_str in pending:
-                del pending[uid_str]
-                with open("pending_payments.json", "w") as f:
-                    json.dump(pending, f, indent=2)
+            from core.database import pending_payments as pending_db
+pending_db.remove(int(uid_str))
             await cb.answer(f"✅ Plan activado", show_alert=True)
             try:
                 nombre = PLANES.get(plan_id, {}).get("nombre", plan_id)
