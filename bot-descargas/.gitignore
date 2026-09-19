@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Secretos (NUNCA subir a GitHub)
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+cookies.txt
+*_cookies.txt
+cookies/
+creds/
+watermarks/
+
+# Base de datos local
+*.json
+!package.json
+!tsconfig.json
+users_db.json
+bot_settings.json
+pending_payments.json
+telefonos_registrados.json
+metrics.json
+
+# Descargas
+downloads/
+/tmp/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Docker
+*.pid
