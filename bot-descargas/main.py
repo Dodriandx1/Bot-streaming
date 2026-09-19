@@ -24,7 +24,15 @@ try:
 except Exception as e:
     print(f"[main] ❌ ERROR CRÍTICO en config.settings: {e}")
     sys.exit(1)
-
+# ─── CONEXIÓN A MONGODB (antes de todo) ───
+try:
+    from core.database import Database
+    if Database.connect():
+        print("[main] ✓ MongoDB conectado")
+    else:
+        print("[main] ⚠️ MongoDB no disponible — modo offline")
+except Exception as e:
+    print(f"[main] ⚠️ Error inicializando MongoDB: {e}")
 
 # ═══════════════════════════════════════════════════════════════════
 # 2. CLIENTE DE PYROGRAM
@@ -209,14 +217,16 @@ async def main():
         loop.create_task(_run_supervised("queue_worker", queue_worker))
         loop.create_task(_run_supervised("daily_reset_loop", _daily_reset_loop))
         print("[main] ✓ Tareas de fondo iniciadas")
+                # ── Reconectar a MongoDB (por si acaso) ──
+        try:
+            from core.database import Database
+            Database.connect()
+        except Exception as e:
+            print(f"[main] ⚠️ MongoDB reconexión: {e}")
 
         # ── Esperar indefinidamente ──
         await asyncio.Event().wait()
 
-
-# ═══════════════════════════════════════════════════════════════════
-# 7. PUNTO DE ENTRADA CON SUPERVISOR DE ÚLTIMA INSTANCIA
-# ═══════════════════════════════════════════════════════════════════
 
 def _notify_crash_http(error: Exception):
     """Notifica al admin por HTTP directo (sin depender de Pyrogram)."""
