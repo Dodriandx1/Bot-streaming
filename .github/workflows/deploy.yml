@@ -1,0 +1,116 @@
+name: 🚀 Deploy Bot to VPS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Permite ejecución manual desde GitHub
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════
+  #  JOB 1: Construir y subir la imagen Docker
+  # ═══════════════════════════════════════════════════════════════════
+  build-and-push:
+    name: 🔨 Build & Push Docker Image
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🔧 Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Login a GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📦 Extraer metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🏗️ Construir y subir imagen
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  # ═══════════════════════════════════════════════════════════════════
+  #  JOB 2: Desplegar en el VPS
+  # ═══════════════════════════════════════════════════════════════════
+  deploy:
+    name: 🚀 Deploy to VPS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout código (para tener docker-compose.yml)
+        uses: actions/checkout@v4
+
+      - name: 🔐 Copiar docker-compose.yml al VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          source: "docker-compose.yml"
+          target: "/root/bot-descargas/"
+
+      - name: 🚀 Desplegar en el VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          script: |
+            set -e
+            cd /root/bot-descargas
+
+            echo "🔐 Login a GitHub Container Registry..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            echo "📥 Descargando nueva imagen..."
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+            echo "🛑 Deteniendo contenedor anterior..."
+            docker compose down || true
+
+            echo "🚀 Levantando nuevo contenedor..."
+            docker compose up -d
+
+            echo "🧹 Limpiando imágenes viejas..."
+            docker image prune -f
+
+            echo "✅ Despliegue completado"
+            docker compose ps
+
+      - name: ✅ Notificar éxito
+        if: success()
+        run: echo "✅ Bot desplegado correctamente en el VPS"
+
+      - name: ❌ Notificar fallo
+        if: failure()
+        run: echo "❌ Falló el despliegue. Revisa los logs."
