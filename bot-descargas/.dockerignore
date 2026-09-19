@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.pytest_cache/
+
+# Base de datos local (no subir al contenedor)
+*.db
+*.sqlite3
+users_db.json
+bot_settings.json
+pending_payments.json
+telefonos_registrados.json
+metrics.json
+
+# Configuración sensible
+.env
+.env.local
+*.key
+*.pem
+cookies.txt
+crunchyroll_cookies.txt
+
+# Descargas y temporales
+downloads/
+tmp/
+*.log
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Docs
+README.md
+*.md
