@@ -1,0 +1,74 @@
+version: "3.9"
+
+services:
+  bot:
+    image: ghcr.io/dodriandx1/bot-descargas:main
+    container_name: telegram-bot
+    restart: unless-stopped
+    
+    # ─── Variables de entorno ───
+    env_file:
+      - .env
+    
+    environment:
+      - TZ=America/Guayaquil
+      - PYTHONUNBUFFERED=1
+    
+    # ─── Volúmenes persistentes ───
+    volumes:
+      # Descargas temporales (opcional, se limpian solas)
+      - /tmp/downloads:/tmp/downloads
+      # Cookies de plataformas
+      - ./cookies:/app/cookies:ro
+      # Marcas de agua .ass de usuarios
+      - ./watermarks:/app/watermarks
+      # Logs persistentes
+      - ./logs:/app/logs
+    
+    # ─── Límites de recursos (evita que el bot tumbe el VPS) ───
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    
+    # ─── Logs (rotación automática) ───
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # ─── Healthcheck ───
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "python main.py"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ═══════════════════════════════════════════════════════════════════
+  #  MongoDB local (OPCIONAL — solo si NO usas MongoDB Atlas)
+  #  Descomentar si quieres una DB local en el VPS
+  # ═══════════════════════════════════════════════════════════════════
+  # mongo:
+  #   image: mongo:7
+  #   container_name: mongo-bot
+  #   restart: unless-stopped
+  #   environment:
+  #     - MONGO_INITDB_ROOT_USERNAME=botuser
+  #     - MONGO_INITDB_ROOT_PASSWORD=tu_password_seguro
+  #     - MONGO_INITDB_DATABASE=bot_descargas
+  #   volumes:
+  #     - mongo_data:/data/db
+  #   ports:
+  #     - "127.0.0.1:27017:27017"
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "5m"
+  #       max-file: "2"
+
+# volumes:
+#   mongo_data:
