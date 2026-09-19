@@ -76,7 +76,7 @@ _try_import("handlers.messages", "handlers.messages")
 _try_import("handlers.callbacks", "handlers.callbacks")
 
 # Handlers de FFmpeg (config, watermark, etc.)
-_try_import("ffmpeg_config", "ffmpeg_config")
+_try_import("ffmpeg_try_import("config.ffmpeg_config", "config.ffmpeg_config")_config", "ffmpeg_config")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -197,7 +197,7 @@ async def main():
 
         # ── Registrar handlers de FFmpeg (si existen) ──
         try:
-            from ffmpeg_config import register_ffmpeg_config_handlers
+            from ffmpeg_config impofrom config.ffmpeg_config import register_ffmpeg_config_handlersrt register_ffmpeg_config_handlers
             from handlers.commands import is_admin
             register_ffmpeg_config_handlers(bot, is_admin, BOT_SIGNATURE)
             print("[main] ✓ Handlers de FFmpeg registrados")
